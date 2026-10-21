@@ -1,0 +1,15 @@
+
+
+Запуск БД
+
+cd ~/notes
+docker compose up -d
+docker compose ps
+docker compose logs -f db     # смотри, что поднялся без ошибок
+Подключение удалённо
+
+Host:     192.168.1.50     # IP малинки (узнать: hostname -I на малинке)
+Port:     5432
+Database: notes
+User:     notes
+Password: notes_dev_pass

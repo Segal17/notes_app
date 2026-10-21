@@ -1,0 +1,30 @@
+services:
+  db:
+    image: postgres:16
+    container_name: notes-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: notes
+      POSTGRES_PASSWORD: notes_dev_pass
+      POSTGRES_DB: notes
+      TZ: Europe/Moscow
+    ports:
+      # ВАЖНО: 0.0.0.0 — слушать на всех интерфейсах, чтобы достучаться с других устройств
+      - "0.0.0.0:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    command: >
+      postgres
+      -c shared_buffers=256MB
+      -c effective_cache_size=512MB
+      -c work_mem=8MB
+      -c maintenance_work_mem=64MB
+      -c max_connections=20
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U notes -d notes"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  pgdata:
