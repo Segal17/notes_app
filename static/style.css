@@ -1,0 +1,240 @@
+* { box-sizing: border-box; }
+body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+       margin: 0; background: #f5f5f7; color: #222; }
+header .brand { font-weight: bold; text-decoration: none; color: #222; font-size: 18px; }
+header nav a { margin-left: 12px; text-decoration: none; color: #2b6cb0; }
+h1 { font-size: 22px; margin: 8px 0 16px; }
+form label { display: block; margin-bottom: 12px; font-size: 14px; color: #444; }
+form input[type="text"], form input[type="date"], form textarea {
+  width: 100%; padding: 8px 10px; font-size: 14px; border: 1px solid #ccc;
+  border-radius: 6px; margin-top: 4px; font-family: inherit; background: #fff;
+}
+form textarea { resize: vertical; }
+button { padding: 10px 16px; font-size: 14px; border: none; border-radius: 6px;
+         background: #2b6cb0; color: #fff; cursor: pointer; }
+button:hover { background: #2c5282; }
+.error { background: #fed7d7; color: #822727; padding: 10px 12px; border-radius: 6px;
+         margin-bottom: 12px; }
+.muted { color: #777; }
+ul.notes { list-style: none; padding: 0; }
+li.note { background: #fff; border: 1px solid #e5e5e5; border-radius: 8px;
+          padding: 12px; margin-bottom: 8px; display: flex; gap: 12px; }
+.note-date { font-weight: bold; color: #555; min-width: 100px; }
+.note-culture { font-weight: 600; margin-bottom: 4px; }
+.note-desc { white-space: pre-wrap; }
+
+.row { display: flex; gap: 12px; align-items: center; }
+.row > label { flex: 1; }
+.row textarea { resize: none; overflow: hidden; }
+
+.toast {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 16px;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 14px;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.toast-ok { background: #2f855a; }
+.toast-err { background: #c53030; }
+
+@media (max-width: 600px) {
+  .row { flex-direction: column; }
+}
+
+.date-row { margin-bottom: 12px; }
+.date-row label { display: block; font-size: 14px; color: #444; }
+.date-row input { padding: 8px 10px; font-size: 14px; border: 1px solid #ccc;
+                  border-radius: 6px; margin-top: 4px; background: #fff; }
+
+#rows { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+
+.row input[type="text"], .row textarea {
+  width: 100%;
+  padding: 0 10px;
+  font-size: 14px;
+  line-height: 36px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-family: inherit;
+  background: #fff;
+  box-sizing: border-box;
+  height: 38px;
+  min-height: 38px;
+  max-height: 38px;
+  display: block;
+  vertical-align: middle;
+}
+.row .del-row {
+  background: transparent; color: #c53030; border: none; cursor: pointer;
+  font-size: 16px; padding: 0; line-height: 1;
+}
+
+.add-row {
+  background: transparent; color: #2b6cb0; border: 1px dashed #2b6cb0;
+  border-radius: 6px; padding: 8px 12px; font-size: 14px; cursor: pointer;
+  margin-right: 8px;
+}
+.add-row:hover { background: #ebf4ff; }
+
+.save-btn {
+  background: #2b6cb0; color: #fff; border: none; border-radius: 6px;
+  padding: 10px 16px; font-size: 14px; cursor: pointer;
+}
+.save-btn:hover { background: #2c5282; }
+
+@media (max-width: 600px) {
+  .row .del-row { padding: 0; }
+}
+
+.date-col { min-width: 110px; font-weight: 600; color: #555; padding-top: 26px;
+            font-size: 13px; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.history-btn {
+  background: transparent; color: #2b6cb0; border: 1px solid #2b6cb0;
+  border-radius: 6px; padding: 10px 16px; font-size: 14px; cursor: pointer;
+}
+.history-btn:hover { background: #ebf4ff; }
+
+/* Каркас страницы: шапка / скролл-середина / подвал */
+.page-header { flex: 0 0 auto; }
+.page-footer { flex: 0 0 auto; padding-top: 12px; border-top: 1px solid #e5e5e5; }
+
+/* Шапка столбцов */
+.cols-head {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+  color: #666;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #e5e5e5;
+  margin-bottom: 4px;
+}
+.cols-head .col-date { flex: 0 0 100px; }
+.cols-head .col-culture { flex: 1 1 30%; }
+.cols-head .col-desc { flex: 2 1 60%; }
+.cols-head .col-del { flex: 0 0 32px; }
+
+/* Строки */
+.row .col-date { flex: 0 0 100px; font-size: 13px; color: #555; padding-top: 0; }
+.row .col-culture { flex: 1 1 30%; }
+.row .col-desc { flex: 2 1 60%; }
+.row .col-del {
+  flex: 0 0 32px;
+  align-self: center;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Мобильный */
+@media (max-width: 600px) {
+  .cols-head { display: none; }
+  .row .col-date { flex: none; padding-top: 0; font-weight: 600; }
+  .row .col-del { align-self: flex-end; }
+  .page { height: auto; }
+  .rows-scroll { overflow-y: visible; }
+}
+
+.tabs-header {
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  background: #fff;
+  border-bottom: 1px solid #e5e5e5;
+}
+.tabs {
+  display: flex;
+  gap: 4px;
+}
+.tab {
+  display: inline-block;
+  padding: 12px 16px;
+  font-size: 14px;
+  text-decoration: none;
+  color: #555;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+.tab:hover { color: #2b6cb0; }
+.tab.active {
+  color: #2b6cb0;
+  border-bottom-color: #2b6cb0;
+  font-weight: 600;
+}
+
+/* === Layout: фиксированная шапка/подвал, скролл только в rows === */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background: #f5f5f7;
+  color: #222;
+}
+
+body > header.tabs-header {
+  flex: 0 0 auto;
+}
+
+body > main {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  max-width: 720px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 16px 16px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.page-header {
+  flex: 0 0 auto;
+}
+
+.page-footer {
+  flex: 0 0 auto;
+  padding-top: 12px;
+  border-top: 1px solid #e5e5e5;
+}
+
+.rows-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+/* На второй вкладке main тоже flex-колонка, контент пусть скроллится сам */
+main > h1 { flex: 0 0 auto; }
+
+@media (max-width: 600px) {
+  html, body { overflow: auto; height: auto; }
+  body { display: block; }
+  body > main { display: block; overflow: visible; height: auto; }
+  .page { height: auto; }
+  .rows-scroll { overflow-y: visible; }
+}

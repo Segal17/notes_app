@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}История{% endblock %}
+{% block content %}
+  <h1>История</h1>
+  {% if not notes %}
+    <p class="muted">Записей пока нет.</p>
+  {% else %}
+    <ul class="notes">
+      {% for n in notes %}
+        <li class="note">
+          <div class="note-date">{{ n.date }}</div>
+          <div class="note-body">
+            {% if n.culture %}<div class="note-culture">{{ n.culture }}</div>{% endif %}
+            <div class="note-desc">{{ n.description or '' }}</div>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+  <p><a href="/">← Назад к форме</a></p>
+{% endblock %}

@@ -7,3 +7,4 @@ dist/
 data/settings.json
 .idea/
 .vscode/
+.env

@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% block title %}Новая заметка{% endblock %}
+{% block content %}
+<div class="page">
+  <div class="page-header">
+    <h1 id="page-title">Новая заметка</h1>
+
+    <div class="date-row" id="date-row">
+      <label>Дата
+        <input type="date" id="date" required>
+      </label>
+    </div>
+
+    <div class="cols-head" id="cols-head">
+      <div class="col-date" id="head-date">Дата</div>
+      <div class="col-culture">Культура</div>
+      <div class="col-desc">Описание</div>
+      <div class="col-del"></div>
+    </div>
+  </div>
+
+  <div id="rows" class="rows-scroll"></div>
+
+  <div class="actions page-footer">
+    <button type="button" id="add-row" class="add-row">+ Добавить запись</button>
+    <button type="button" id="save-btn" class="save-btn">Сохранить</button>
+    <button type="button" id="history-btn" class="history-btn">Показать историю</button>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const rowsContainer = document.getElementById('rows');
+    const dateInput = document.getElementById('date');
+    const dateRow = document.getElementById('date-row');
+    const colsHead = document.getElementById('cols-head');
+    const toast = document.getElementById('toast');
+    const addRowBtn = document.getElementById('add-row');
+    const saveBtn = document.getElementById('save-btn');
+    const historyBtn = document.getElementById('history-btn');
+    const pageTitle = document.getElementById('page-title');
+    const DEFAULT_ROWS = 4;
+
+    let mode = 'create';
+
+    const t = new Date();
+    dateInput.value = t.getFullYear() + '-' +
+                      String(t.getMonth() + 1).padStart(2, '0') + '-' +
+                      String(t.getDate()).padStart(2, '0');
+
+    function showToast(text, ok) {
+      toast.textContent = text;
+      toast.className = 'toast ' + (ok ? 'toast-ok' : 'toast-err');
+      toast.hidden = false;
+      setTimeout(() => { toast.hidden = true; }, 2500);
+    }
+
+    function makeRow(culture, description, dateStr, noteId, showDate) {
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.dataset.id = noteId || '';
+      row.dataset.origCulture = culture || '';
+      row.dataset.origDesc = description || '';
+      row.innerHTML = `
+        ${showDate ? `<div class="col-date date-cell">${dateStr || ''}</div>` : '<div class="col-date"></div>'}
+        <div class="col-culture"><input type="text" class="culture" autocomplete="off"></div>
+        <div class="col-desc"><textarea class="description" rows="1"></textarea></div>
+        <div class="col-del"><button type="button" class="del-row" title="Удалить">✕</button></div>
+      `;
+      row.querySelector('.culture').value = culture || '';
+      row.querySelector('.description').value = description || '';
+      const delBtn = row.querySelector('.del-row');
+      if (mode === 'history') {
+        delBtn.style.display = 'none';
+      } else {
+        delBtn.addEventListener('click', () => {
+          if (rowsContainer.children.length > 1) row.remove();
+        });
+      }
+      return row;
+    }
+
+    function resetCreate() {
+      mode = 'create';
+      pageTitle.textContent = 'Новая заметка';
+      dateRow.style.display = '';
+      colsHead.style.display = '';
+      document.getElementById('head-date').style.visibility = 'hidden';
+      addRowBtn.style.display = '';
+      saveBtn.textContent = 'Сохранить';
+      historyBtn.textContent = 'Показать историю';
+      rowsContainer.innerHTML = '';
+      for (let i = 0; i < DEFAULT_ROWS; i++) {
+        rowsContainer.appendChild(makeRow('', '', '', '', false));
+      }
+    }
+
+    function renderHistory(notes) {
+      mode = 'history';
+      document.getElementById('head-date').style.visibility = 'visible';
+      pageTitle.textContent = 'История';
+      dateRow.style.display = 'none';
+      colsHead.style.display = '';
+      addRowBtn.style.display = 'none';
+      saveBtn.textContent = 'Обновить';
+      historyBtn.textContent = 'Скрыть историю';
+      rowsContainer.innerHTML = '';
+      if (notes.length === 0) {
+        showToast('Записей нет', false);
+        return;
+      }
+      notes.forEach(n => {
+        rowsContainer.appendChild(makeRow(
+          n.culture || '', n.description || '', n.date || '', n.id, true
+        ));
+      });
+    }
+
+    addRowBtn.addEventListener('click', () => {
+      if (mode === 'create') rowsContainer.appendChild(makeRow('', '', '', '', false));
+    });
+
+    historyBtn.addEventListener('click', async () => {
+      if (mode === 'history') {
+        resetCreate();
+        return;
+      }
+      try {
+        const resp = await fetch('/history-json?limit=50');
+        const data = await resp.json();
+        if (!resp.ok || !data.ok) {
+          showToast(data.error || 'Ошибка сервера', false);
+          return;
+        }
+        renderHistory(data.notes || []);
+      } catch (err) {
+        showToast('Нет связи с сервером', false);
+      }
+    });
+
+    saveBtn.addEventListener('click', async () => {
+      if (mode === 'create') {
+        const items = [];
+        rowsContainer.querySelectorAll('.row').forEach(r => {
+          const c = r.querySelector('.culture').value.trim();
+          const d = r.querySelector('.description').value.trim();
+          if (c || d) items.push({ culture: c, description: d });
+        });
+        if (items.length === 0) { showToast('Заполните хотя бы одну строку', false); return; }
+        try {
+          const resp = await fetch('/notes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ date: dateInput.value, items: items }),
+          });
+          const data = await resp.json();
+          if (!resp.ok || !data.ok) { showToast(data.error || 'Ошибка сервера', false); return; }
+          showToast('Отправлено: ' + data.saved, true);
+          resetCreate();
+        } catch (err) {
+          showToast('Нет связи с сервером', false);
+        }
+      } else {
+        const items = [];
+        rowsContainer.querySelectorAll('.row').forEach(r => {
+          const id = parseInt(r.dataset.id, 10);
+          if (!id) return;
+          const c = r.querySelector('.culture').value.trim();
+          const d = r.querySelector('.description').value.trim();
+          const origC = (r.dataset.origCulture || '').trim();
+          const origD = (r.dataset.origDesc || '').trim();
+          if (c !== origC || d !== origD) {
+            items.push({ id: id, culture: c, description: d });
+          }
+        });
+        if (items.length === 0) { showToast('Нет изменений', false); return; }
+        try {
+          const resp = await fetch('/notes/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ items: items }),
+          });
+          const data = await resp.json();
+          if (!resp.ok || !data.ok) { showToast(data.error || 'Ошибка сервера', false); return; }
+          showToast('Обновлено: ' + data.updated, true);
+          rowsContainer.querySelectorAll('.row').forEach(r => {
+            r.dataset.origCulture = r.querySelector('.culture').value.trim();
+            r.dataset.origDesc = r.querySelector('.description').value.trim();
+          });
+        } catch (err) {
+          showToast('Нет связи с сервером', false);
+        }
+      }
+    });
+
+    resetCreate();
+  });
+</script>
+{% endblock %}

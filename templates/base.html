@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Заметки{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="tabs-header">
+    <nav class="tabs">
+      <a href="/" class="tab {% if active_tab == 'notes' %}active{% endif %}">Заметки</a>
+      <a href="/second" class="tab {% if active_tab == 'second' %}active{% endif %}">Вторая</a>
+    </nav>
+  </header>
+  <main>
+    {% if error %}<div class="error">{{ error }}</div>{% endif %}
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>
