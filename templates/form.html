@@ -15,6 +15,7 @@
       <div class="col-date" id="head-date">Дата</div>
       <div class="col-culture">Культура</div>
       <div class="col-desc">Описание</div>
+      <div class="col-mic-head"></div>
       <div class="col-del"></div>
     </div>
   </div>
@@ -65,15 +66,97 @@
       row.dataset.origDesc = description || '';
       row.innerHTML = `
         ${showDate ? `<div class="col-date date-cell">${dateStr || ''}</div>` : '<div class="col-date"></div>'}
-        <div class="col-culture"><input type="text" class="culture" autocomplete="off"></div>
-        <div class="col-desc"><textarea class="description" rows="1"></textarea></div>
+        <div class="col-culture"><input type="text" class="culture" autocomplete="off" placeholder="Культура"></div>
+        <div class="col-desc"><textarea class="description" rows="1" placeholder="Описание"></textarea></div>
+        <div class="col-mic"><button type="button" class="mic-row" title="Голос">🎤</button></div>
         <div class="col-del"><button type="button" class="del-row" title="Удалить">✕</button></div>
       `;
       row.querySelector('.culture').value = culture || '';
       row.querySelector('.description').value = description || '';
+
+      const descEl0 = row.querySelector('.description');
+      descEl0.style.height = 'auto';
+      descEl0.style.height = descEl0.scrollHeight + 'px';
+      descEl0.addEventListener('input', function () {
+        this.style.height = 'auto';
+        this.style.height = this.scrollHeight + 'px';
+      });
+
+      // --- голосовой ввод для этой строки ---
+      const micBtn = row.querySelector('.mic-row');
+      const descEl = row.querySelector('.description');
+      let recognition = null;
+      let recording = false;
+
+      if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        micBtn.disabled = true;
+        micBtn.title = 'Голосовой ввод не поддерживается браузером';
+      }
+
+      function startRec() {
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SR();
+        recognition.lang = 'ru-RU';
+        recognition.continuous = true;
+        recognition.interimResults = false;
+        recognition.onresult = function (event) {
+          let text = '';
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            if (event.results[i].isFinal) {
+              text += event.results[i][0].transcript;
+            }
+          }
+          if (text) {
+            const cur = descEl.value || '';
+            descEl.value = cur ? (cur + ' ' + text.trim()) : text.trim();
+            // авто-рост после голосового ввода
+            descEl.style.height = 'auto';
+            descEl.style.height = descEl.scrollHeight + 'px';
+          }
+        };
+        recognition.onerror = function (ev) {
+          showToast('Ошибка распознавания: ' + ev.error, false);
+          stopRec();
+        };
+        recognition.onend = function () {
+          if (recording) {
+            // авто-перезапуск, если браузер сам остановил (например, по паузе)
+            try { recognition.start(); } catch (e) {}
+          }
+        };
+        recording = true;
+        micBtn.textContent = '⏹';
+        try {
+          recognition.start();
+          showToast('Слушаю… Нажми ⏹, чтобы остановить', true);
+        } catch (e) {
+          showToast('Не удалось запустить запись', false);
+          stopRec();
+        }
+      }
+
+      function stopRec() {
+        recording = false;
+        micBtn.textContent = '🎤';
+        if (recognition) {
+          try { recognition.stop(); } catch (e) {}
+          recognition = null;
+        }
+      }
+
+      micBtn.addEventListener('click', function () {
+        if (recording) {
+          stopRec();
+        } else {
+          startRec();
+        }
+      });
+
       const delBtn = row.querySelector('.del-row');
       if (mode === 'history') {
         delBtn.style.display = 'none';
+        const micB = row.querySelector('.mic-row');
+        if (micB) micB.style.display = 'none';
       } else {
         delBtn.addEventListener('click', () => {
           if (rowsContainer.children.length > 1) row.remove();
@@ -95,6 +178,10 @@
       for (let i = 0; i < DEFAULT_ROWS; i++) {
         rowsContainer.appendChild(makeRow('', '', '', '', false));
       }
+      rowsContainer.querySelectorAll('textarea.description').forEach(function (el) {
+        el.style.height = 'auto';
+        el.style.height = el.scrollHeight + 'px';
+      });
     }
 
     function renderHistory(notes) {
@@ -115,6 +202,10 @@
         rowsContainer.appendChild(makeRow(
           n.culture || '', n.description || '', n.date || '', n.id, true
         ));
+      });
+      rowsContainer.querySelectorAll('textarea.description').forEach(function (el) {
+        el.style.height = 'auto';
+        el.style.height = el.scrollHeight + 'px';
       });
     }
 

@@ -53,7 +53,7 @@ li.note { background: #fff; border: 1px solid #e5e5e5; border-radius: 8px;
 
 #rows { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
 
-.row input[type="text"], .row textarea {
+.row input[type="text"] {
   width: 100%;
   padding: 0 10px;
   font-size: 14px;
@@ -64,15 +64,34 @@ li.note { background: #fff; border: 1px solid #e5e5e5; border-radius: 8px;
   background: #fff;
   box-sizing: border-box;
   height: 38px;
-  min-height: 38px;
-  max-height: 38px;
   display: block;
-  vertical-align: middle;
+}
+
+.row textarea {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 14px;
+  line-height: 20px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-family: inherit;
+  background: #fff;
+  box-sizing: border-box;
+  min-height: 38px;
+  resize: none;
+  overflow: hidden;
+  display: block;
 }
 .row .del-row {
   background: transparent; color: #c53030; border: none; cursor: pointer;
   font-size: 16px; padding: 0; line-height: 1;
 }
+.mic-row {
+  background: transparent; border: 1px solid #ccc; border-radius: 6px;
+  cursor: pointer; font-size: 16px; padding: 4px 6px; line-height: 1;
+}
+.mic-row:hover { background: #f0f0f0; }
+.mic-row:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .add-row {
   background: transparent; color: #2b6cb0; border: 1px dashed #2b6cb0;
@@ -115,14 +134,17 @@ li.note { background: #fff; border: 1px solid #e5e5e5; border-radius: 8px;
   margin-bottom: 4px;
 }
 .cols-head .col-date { flex: 0 0 100px; }
-.cols-head .col-culture { flex: 1 1 30%; }
-.cols-head .col-desc { flex: 2 1 60%; }
+.cols-head .col-culture { flex: 0 0 22%; }
+.cols-head .col-desc { flex: 1 1 auto; }
+.cols-head .col-mic-head { flex: 0 0 36px; }
 .cols-head .col-del { flex: 0 0 32px; }
 
 /* Строки */
 .row .col-date { flex: 0 0 100px; font-size: 13px; color: #555; padding-top: 0; }
-.row .col-culture { flex: 1 1 30%; }
-.row .col-desc { flex: 2 1 60%; }
+.row .col-culture { flex: 0 0 22%; }
+.row .col-desc { flex: 1 1 auto; }
+.row .col-mic { flex: 0 0 36px; align-self: center; display: flex;
+                align-items: center; justify-content: center; }
 .row .col-del {
   flex: 0 0 32px;
   align-self: center;
@@ -137,8 +159,6 @@ li.note { background: #fff; border: 1px solid #e5e5e5; border-radius: 8px;
   .cols-head { display: none; }
   .row .col-date { flex: none; padding-top: 0; font-weight: 600; }
   .row .col-del { align-self: flex-end; }
-  .page { height: auto; }
-  .rows-scroll { overflow-y: visible; }
 }
 
 .tabs-header {
@@ -232,9 +252,109 @@ body > main {
 main > h1 { flex: 0 0 auto; }
 
 @media (max-width: 600px) {
-  html, body { overflow: auto; height: auto; }
-  body { display: block; }
-  body > main { display: block; overflow: visible; height: auto; }
-  .page { height: auto; }
-  .rows-scroll { overflow-y: visible; }
+  /* Шапка вкладок компактнее */
+  .tabs-header { padding: 0 8px; }
+  .tab { padding: 10px 12px; font-size: 13px; }
+
+  main { padding: 0 8px 12px; }
+
+  h1 { font-size: 18px; margin: 8px 0 12px; }
+
+  /* Дата сверху — на всю ширину */
+  .date-row label { font-size: 13px; }
+  .date-row input { width: 100%; }
+
+  /* Скрываем шапку столбцов — на телефоне она мешает */
+  .cols-head { display: none !important; }
+
+  /* Каждая строка — карточка: дата/поля/кнопки аккуратно */
+  .row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    grid-template-areas:
+      "date    date    date"
+      "culture culture culture"
+      "desc    mic     del";
+    gap: 6px;
+    padding: 10px;
+    background: #fff;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+  }
+
+  .row .col-date {
+    grid-area: date;
+    flex: none;
+    font-size: 13px;
+    font-weight: 600;
+    color: #2b6cb0;
+    padding: 0 0 6px 0;
+  }
+
+  .row .col-date:empty {
+    display: none;
+  }
+
+  .row .col-culture { grid-area: culture; }
+  .row .col-desc    { grid-area: desc; }
+  .row .col-mic     { grid-area: mic; align-self: end; }
+  .row .col-del     { grid-area: del; align-self: end; }
+
+  .row input[type="text"],
+  .row textarea {
+    font-size: 15px;   /* крупнее для пальцев */
+    padding: 10px 12px;
+    min-height: 44px;  /* удобно тапать */
+  }
+
+  .row textarea {
+    min-height: 44px;
+  }
+
+  /* Кнопки 🎤 и ✕ — крупные, по 40x40 */
+  .mic-row, .del-row {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .del-row {
+    border: 1px solid #f0c0c0;
+    color: #c53030;
+  }
+
+  .mic-row {
+    border: 1px solid #cce0f5;
+    color: #2b6cb0;
+  }
+
+  /* Подвал — кнопки на всю ширину, друг под другом */
+  .actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .actions button {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 15px;
+  }
+
+  /* Тост — почти на всю ширину */
+  .toast {
+    left: 8px;
+    right: 8px;
+    transform: none;
+    text-align: center;
+  }
+}
+
+/* Планшеты и узкие окна ПК (600-800px) — тоже чуть компактнее */
+@media (max-width: 800px) and (min-width: 601px) {
+  .row .col-culture { flex: 0 0 30%; }
+  .row .col-desc { flex: 1 1 auto; }
 }
