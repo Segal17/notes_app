@@ -51,7 +51,7 @@ class NotesDb:
         sql = """
             SELECT id, created_at::text, date::text, culture, description
             FROM notes
-            ORDER BY date DESC, id DESC
+            ORDER BY date ASC, id ASC
             LIMIT %s
         """
         try:

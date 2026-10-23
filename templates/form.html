@@ -3,7 +3,12 @@
 {% block content %}
 <div class="page">
   <div class="page-header">
-    <h1 id="page-title">Новая заметка</h1>
+    <div class="title-row">
+      <h1 id="page-title">Новая заметка</h1>
+      <button type="button" id="help-open" class="help-icon" title="Что это?">
+        <i class="bi bi-question-circle"></i>
+      </button>
+    </div>
 
     <div class="date-row" id="date-row">
       <label>Дата
@@ -42,7 +47,7 @@
     const saveBtn = document.getElementById('save-btn');
     const historyBtn = document.getElementById('history-btn');
     const pageTitle = document.getElementById('page-title');
-    const DEFAULT_ROWS = 4;
+    const DEFAULT_ROWS = 2;
 
     let mode = 'create';
 
@@ -69,10 +74,51 @@
         <div class="col-culture"><input type="text" class="culture" autocomplete="off" placeholder="Культура"></div>
         <div class="col-desc"><textarea class="description" rows="1" placeholder="Описание"></textarea></div>
         <div class="col-mic"><button type="button" class="mic-row" title="Голос">🎤</button></div>
-        <div class="col-del"><button type="button" class="del-row" title="Удалить">✕</button></div>
+        <div class="col-del"><button type="button" class="del-row" title="Удалить">✕</button><button type="button" class="edit-row" title="Изменить" style="display:none;">✎</button></div>
       `;
       row.querySelector('.culture').value = culture || '';
       row.querySelector('.description').value = description || '';
+
+      const cultureEl = row.querySelector('.culture');
+      const descField = row.querySelector('.description');
+      const editBtn = row.querySelector('.edit-row');
+      if (mode === 'history') {
+        cultureEl.readOnly = true;
+        descField.readOnly = true;
+        editBtn.style.display = 'inline-block';
+        editBtn.addEventListener('click', async function () {
+          if (!cultureEl.readOnly) {
+            if (!confirm('Сохранить изменения в записи?')) return;
+            try {
+              const resp = await fetch('/notes/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  items: [{
+                    id: parseInt(row.dataset.id, 10),
+                    culture: cultureEl.value.trim(),
+                    description: descField.value.trim(),
+                  }],
+                }),
+              });
+              const data = await resp.json();
+              if (!resp.ok || !data.ok) { showToast(data.error || 'Ошибка сервера', false); return; }
+              cultureEl.readOnly = true;
+              descField.readOnly = true;
+              editBtn.textContent = '✎';
+              editBtn.title = 'Изменить';
+              showToast('Обновлено', true);
+            } catch (err) {
+              showToast('Нет связи с сервером', false);
+            }
+          } else {
+            cultureEl.readOnly = false;
+            descField.readOnly = false;
+            editBtn.textContent = '✓';
+            editBtn.title = 'Сохранить';
+          }
+        });
+      }
 
       const descEl0 = row.querySelector('.description');
       descEl0.style.height = 'auto';
@@ -172,6 +218,7 @@
       colsHead.style.display = '';
       document.getElementById('head-date').style.visibility = 'hidden';
       addRowBtn.style.display = '';
+      saveBtn.style.display = '';
       saveBtn.textContent = 'Сохранить';
       historyBtn.textContent = 'Показать историю';
       rowsContainer.innerHTML = '';
@@ -191,6 +238,7 @@
       dateRow.style.display = 'none';
       colsHead.style.display = '';
       addRowBtn.style.display = 'none';
+      saveBtn.style.display = 'none';
       saveBtn.textContent = 'Обновить';
       historyBtn.textContent = 'Скрыть историю';
       rowsContainer.innerHTML = '';
@@ -253,40 +301,53 @@
         } catch (err) {
           showToast('Нет связи с сервером', false);
         }
-      } else {
-        const items = [];
-        rowsContainer.querySelectorAll('.row').forEach(r => {
-          const id = parseInt(r.dataset.id, 10);
-          if (!id) return;
-          const c = r.querySelector('.culture').value.trim();
-          const d = r.querySelector('.description').value.trim();
-          const origC = (r.dataset.origCulture || '').trim();
-          const origD = (r.dataset.origDesc || '').trim();
-          if (c !== origC || d !== origD) {
-            items.push({ id: id, culture: c, description: d });
-          }
-        });
-        if (items.length === 0) { showToast('Нет изменений', false); return; }
-        try {
-          const resp = await fetch('/notes/update', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ items: items }),
-          });
-          const data = await resp.json();
-          if (!resp.ok || !data.ok) { showToast(data.error || 'Ошибка сервера', false); return; }
-          showToast('Обновлено: ' + data.updated, true);
-          rowsContainer.querySelectorAll('.row').forEach(r => {
-            r.dataset.origCulture = r.querySelector('.culture').value.trim();
-            r.dataset.origDesc = r.querySelector('.description').value.trim();
-          });
-        } catch (err) {
-          showToast('Нет связи с сервером', false);
-        }
       }
     });
 
     resetCreate();
   });
+</script>
+
+<div id="help-modal" class="modal-backdrop" hidden>
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Зачем нужны заметки</h3>
+      <button type="button" id="help-close-x" class="modal-x" title="Закрыть">✕</button>
+    </div>
+    <div class="modal-body">
+      <p>Это быстрый дневник наблюдений и дел: что сделано, что заметил,
+      что нужно не забыть — по культуре и дате.</p>
+      <p>Можно записать текстом или наговорить голосом. Всё сохраняется
+      в базе и потом доступно в истории.</p>
+      <p>Примеры: «огурцы — полил», «томаты — появились пятна»,
+      «купить семена на следующий год».</p>
+    </div>
+    <div class="modal-foot">
+      <button type="button" id="help-close" class="modal-btn">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const openBtn = document.getElementById('help-open');
+    const modal = document.getElementById('help-modal');
+    const closeX = document.getElementById('help-close-x');
+    const closeBtn = document.getElementById('help-close');
+    if (!openBtn || !modal) return;
+
+    function openModal() { modal.hidden = false; }
+    function closeModal() { modal.hidden = true; }
+
+    openBtn.addEventListener('click', openModal);
+    closeX.addEventListener('click', closeModal);
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', function (e) {
+      if (e.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !modal.hidden) closeModal();
+    });
+  })();
 </script>
 {% endblock %}
