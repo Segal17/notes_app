@@ -1,6 +1,107 @@
 {% extends "base.html" %}
-{% block title %}Вторая{% endblock %}
+{% block title %}Инвентаризация семян{% endblock %}
 {% block content %}
-  <h1>Вторая вкладка</h1>
-  <p class="muted">Пока пусто. Здесь будет что-то позже.</p>
+  <h1 class="seed-title">
+    Инвентаризация семян —
+    <select id="year-select" class="year-select">
+      {% for y in years %}
+        <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+      {% endfor %}
+    </select>
+  </h1>
+
+  <details class="add-form-wrap">
+    <summary>Добавить запись</summary>
+    <form method="post" action="/second/add" class="add-form">
+      <label>Год
+        <input type="number" name="year" value="{{ year }}" min="2000" max="2100" required>
+      </label>
+
+      <label>Культура
+        <select name="culture" required>
+          <option value="">— выбери —</option>
+          {% for c in cultures %}
+            <option value="{{ c.name }}">{{ c.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <label>Сорт
+        <input type="text" name="sort" autocomplete="off">
+      </label>
+
+      <label>Остаток (число)
+        <input type="text" name="quantity" inputmode="decimal">
+      </label>
+
+      <label>Ед. остатка
+        <input type="text" name="quantity_unit" list="units-list" placeholder="г, шт, кг">
+      </label>
+
+      <datalist id="units-list">
+        <option value="г"></option>
+        <option value="шт"></option>
+        <option value="кг"></option>
+        <option value="мг"></option>
+        <option value="уп"></option>
+      </datalist>
+
+      <button type="submit">Добавить</button>
+    </form>
+  </details>
+
+  {% if not grouped %}
+    <p class="muted">Записей за {{ year }} год нет.</p>
+  {% else %}
+    {% for culture, items in grouped.items() %}
+      {% set first = items[0] %}
+      <section class="seed-section">
+        <h2 class="seed-culture">{{ culture }}</h2>
+
+        <div class="seed-meta">
+          {% if first.expiry_text %}
+            <span class="meta-badge"><span class="meta-label">Срок годности:</span> {{ first.expiry_text }}</span>
+          {% endif %}
+          {% if first.need is not none %}
+            <span class="meta-badge"><span class="meta-label">Потребность:</span> {{ first.need }}{% if first.need_unit %} {{ first.need_unit }}{% endif %}</span>
+          {% endif %}
+          {% if first.coefficient is not none %}
+            <span class="meta-badge"><span class="meta-label">Коэфф.:</span> {{ first.coefficient }}</span>
+          {% endif %}
+        </div>
+
+        <table class="seed-table">
+          <thead>
+            <tr>
+              <th>Сорт</th>
+              <th>Остаток</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in items %}
+              <tr>
+                <td>{{ s.sort or '—' }}</td>
+                <td>
+                  {% if s.quantity is not none %}
+                    {{ s.quantity }}{% if s.quantity_unit %} {{ s.quantity_unit }}{% endif %}
+                  {% else %}—{% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+    {% endfor %}
+  {% endif %}
+
+  <script>
+    (function () {
+      const sel = document.getElementById('year-select');
+      if (sel) {
+        sel.addEventListener('change', function () {
+          window.location.href = '/second?year=' + encodeURIComponent(this.value);
+        });
+      }
+    })();
+  </script>
 {% endblock %}

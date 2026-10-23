@@ -95,3 +95,102 @@ class NotesDb:
                 conn.commit()
         except Exception as e:
             raise DbError(f"Ошибка удаления записи {note_id}: {e}")
+
+    def delete_seed(self, seed_id: int) -> None:
+        try:
+            with psycopg.connect(self.dsn) as conn:
+                with conn.cursor() as cur:
+                    cur.execute("DELETE FROM seed_inventory WHERE id = %s", (seed_id,))
+                conn.commit()
+        except Exception as e:
+            raise DbError(f"Ошибка удаления seed {seed_id}: {e}")
+
+    def list_seeds(self, year: int, limit: int = 500) -> list[dict]:
+        sql = """
+            SELECT s.id, s.year, s.culture, s.sort,
+                   s.quantity, s.quantity_unit,
+                   c.expiry_text, c.need, c.need_unit, c.coefficient,
+                   s.created_at::text
+            FROM seed_inventory s
+            LEFT JOIN cultures c ON c.name = s.culture
+            WHERE s.year = %s
+            ORDER BY s.culture, s.sort
+            LIMIT %s
+        """
+        try:
+            with psycopg.connect(self.dsn) as conn:
+                with conn.cursor() as cur:
+                    cur.execute(sql, (year, limit))
+                    rows = cur.fetchall()
+        except Exception as e:
+            raise DbError(f"Ошибка чтения seed_inventory: {e}")
+
+        return [
+            {
+                "id": r[0],
+                "year": r[1],
+                "culture": r[2],
+                "sort": r[3],
+                "quantity": float(r[4]) if r[4] is not None else None,
+                "quantity_unit": r[5],
+                "expiry_text": r[6],
+                "need": float(r[7]) if r[7] is not None else None,
+                "need_unit": r[8],
+                "coefficient": float(r[9]) if r[9] is not None else None,
+                "created_at": r[10],
+            }
+            for r in rows
+        ]
+
+    def create_seed(self, year, culture, sort, quantity, quantity_unit) -> int:
+        sql = """
+            INSERT INTO seed_inventory
+              (year, culture, sort, quantity, quantity_unit)
+            VALUES (%s, %s, %s, %s, %s)
+            RETURNING id
+        """
+        try:
+            with psycopg.connect(self.dsn) as conn:
+                with conn.cursor() as cur:
+                    cur.execute(sql, (year, culture, sort, quantity, quantity_unit))
+                    row = cur.fetchone()
+                conn.commit()
+        except Exception as e:
+            raise DbError(f"Ошибка создания seed: {e}")
+        return row[0]
+
+    def update_seed(self, seed_id, culture, sort, quantity, quantity_unit) -> None:
+        sql = """
+            UPDATE seed_inventory
+            SET culture=%s, sort=%s, quantity=%s, quantity_unit=%s
+            WHERE id=%s
+        """
+        try:
+            with psycopg.connect(self.dsn) as conn:
+                with conn.cursor() as cur:
+                    cur.execute(sql, (culture, sort, quantity, quantity_unit, seed_id))
+                conn.commit()
+        except Exception as e:
+            raise DbError(f"Ошибка обновления seed {seed_id}: {e}")
+
+    def list_cultures(self) -> list[dict]:
+        sql = "SELECT id, name FROM cultures ORDER BY name"
+        try:
+            with psycopg.connect(self.dsn) as conn:
+                with conn.cursor() as cur:
+                    cur.execute(sql)
+                    rows = cur.fetchall()
+        except Exception as e:
+            raise DbError(f"Ошибка чтения cultures: {e}")
+        return [{"id": r[0], "name": r[1]} for r in rows]
+
+    def list_seed_years(self) -> list[int]:
+        sql = "SELECT DISTINCT year FROM seed_inventory ORDER BY year DESC"
+        try:
+            with psycopg.connect(self.dsn) as conn:
+                with conn.cursor() as cur:
+                    cur.execute(sql)
+                    rows = cur.fetchall()
+        except Exception as e:
+            raise DbError(f"Ошибка чтения годов seed_inventory: {e}")
+        return [r[0] for r in rows]

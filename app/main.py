@@ -1,8 +1,10 @@
 import os
 import sys
+import datetime
+from collections import defaultdict
 
 from fastapi import FastAPI, Request, Form
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
@@ -46,8 +48,78 @@ def form_page(request: Request):
 
 
 @app.get("/second", response_class=HTMLResponse)
-def second_page(request: Request):
-    return templates.TemplateResponse("second.html", {"request": request, "active_tab": "second"})
+def second_page(request: Request, year: int | None = None):
+    current_year = year or datetime.date.today().year
+    grouped = {}
+    years = []
+    cultures = []
+    error = None
+    try:
+        db = get_db()
+        years = db.list_seed_years()
+        if current_year not in years:
+            years = sorted(set(years) | {current_year}, reverse=True)
+        cultures = db.list_cultures()
+        seeds = db.list_seeds(current_year)
+        g = defaultdict(list)
+        for s in seeds:
+            g[s["culture"]].append(s)
+        grouped = dict(g)
+    except DbError as e:
+        error = e.message
+
+    return templates.TemplateResponse(
+        "second.html",
+        {
+            "request": request,
+            "active_tab": "second",
+            "grouped": grouped,
+            "year": current_year,
+            "years": years,
+            "cultures": cultures,
+            "error": error,
+        },
+    )
+
+
+@app.post("/second/add")
+def second_add(
+    culture: str = Form(""),
+    sort: str = Form(""),
+    quantity: str = Form(""),
+    quantity_unit: str = Form(""),
+    year: int = Form(0),
+):
+    culture = (culture or "").strip()
+    sort = (sort or "").strip()
+    quantity_unit = (quantity_unit or "").strip() or None
+    target_year = year or datetime.date.today().year
+
+    if not culture:
+        return RedirectResponse(url=f"/second?year={target_year}", status_code=303)
+
+    def to_float(v):
+        v = (v or "").strip().replace(",", ".")
+        if not v:
+            return None
+        try:
+            return float(v)
+        except ValueError:
+            return None
+
+    try:
+        db = get_db()
+        db.create_seed(
+            year=target_year,
+            culture=culture,
+            sort=sort or None,
+            quantity=to_float(quantity),
+            quantity_unit=quantity_unit,
+        )
+    except DbError:
+        pass
+
+    return RedirectResponse(url=f"/second?year={target_year}", status_code=303)
 
 
 @app.post("/notes")
