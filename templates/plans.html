@@ -1,0 +1,132 @@
+﻿{% extends "base.html" %} {% block title %}План работ{% endblock %} {% block
+content %}
+<h1>План работ</h1>
+
+<details class="add-form-wrap">
+  <summary>Добавить план</summary>
+  <form method="post" action="/plans/add" class="add-form">
+    <label class="row-full"
+      >Культура
+      <select name="culture" required>
+        <option value="">— выбери —</option>
+        {% for c in cultures %}
+        <option value="{{ c.name }}">{{ c.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label class="row-half"
+      >Начало: день
+      <select name="day_start" required>
+        {% for d in range(1, 32) %}
+        <option value="{{ d }}">{{ d }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="row-half"
+      >Начало: месяц
+      <select name="month_start" required>
+        {% for m in range(1, 13) %}
+        <option value="{{ m }}">{{ m }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label class="row-half"
+      >Конец: день
+      <select name="day_end" required>
+        {% for d in range(1, 32) %}
+        <option value="{{ d }}">{{ d }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="row-half"
+      >Конец: месяц
+      <select name="month_end" required>
+        {% for m in range(1, 13) %}
+        <option value="{{ m }}">{{ m }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label class="row-full desc-label"
+      >Описание
+      <textarea
+        name="description"
+        rows="1"
+        required
+        class="auto-grow"
+      ></textarea>
+    </label>
+
+    <button type="submit" class="row-full">Добавить</button>
+  </form>
+</details>
+
+{% if not grouped %}
+<p class="muted">Планов нет.</p>
+{% else %} {% for culture, items in grouped.items() %}
+<section class="seed-section">
+  <h2 class="seed-culture">{{ culture }}</h2>
+  <table class="seed-table">
+    <thead>
+      <tr>
+        <th>Начало</th>
+        <th>Конец</th>
+        <th>Описание</th>
+        <th>Сделано</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in items %}
+      <tr>
+        <td>{{ p.day_start }}.{{ '%02d' % p.month_start }}</td>
+        <td>{{ p.day_end }}.{{ '%02d' % p.month_end }}</td>
+        <td>{{ p.description }}</td>
+        <td>
+          <label class="done-toggle">
+            <input
+              type="checkbox"
+              class="plan-done"
+              data-id="{{ p.id }}"
+              {%
+              if
+              p.done
+              %}checked{%
+              endif
+              %}
+            />
+          </label>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endfor %} {% endif %}
+
+<script>
+  document.querySelectorAll(".plan-done").forEach(function (cb) {
+    cb.addEventListener("change", async function () {
+      const id = this.dataset.id;
+      const done = this.checked;
+      try {
+        await fetch("/plans/toggle", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: "id=" + encodeURIComponent(id) + "&done=" + (done ? "1" : "0"),
+        });
+      } catch (e) {}
+    });
+  });
+
+  document.querySelectorAll("textarea.auto-grow").forEach(function (el) {
+    el.style.height = "auto";
+    el.style.height = el.scrollHeight + "px";
+    el.addEventListener("input", function () {
+      this.style.height = "auto";
+      this.style.height = this.scrollHeight + "px";
+    });
+  });
+</script>
+{% endblock %}

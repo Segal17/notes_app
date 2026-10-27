@@ -122,6 +122,67 @@ def second_add(
     return RedirectResponse(url=f"/second?year={target_year}", status_code=303)
 
 
+@app.get("/plans", response_class=HTMLResponse)
+def plans_page(request: Request):
+    grouped = {}
+    cultures = []
+    error = None
+    try:
+        db = get_db()
+        cultures = db.list_cultures()
+        plans = db.list_plans()
+        g = defaultdict(list)
+        for p in plans:
+            g[p["culture"]].append(p)
+        grouped = dict(g)
+    except DbError as e:
+        error = e.message
+
+    return templates.TemplateResponse(
+        "plans.html",
+        {
+            "request": request,
+            "active_tab": "plans",
+            "grouped": grouped,
+            "cultures": cultures,
+            "error": error,
+        },
+    )
+
+
+@app.post("/plans/add")
+def plans_add(
+    culture: str = Form(""),
+    description: str = Form(""),
+    month_start: int = Form(1),
+    day_start: int = Form(1),
+    month_end: int = Form(1),
+    day_end: int = Form(1),
+):
+    culture = (culture or "").strip()
+    description = (description or "").strip()
+    if not culture or not description:
+        return RedirectResponse(url="/plans", status_code=303)
+
+    try:
+        db = get_db()
+        db.create_plan(month_start, day_start, month_end, day_end, culture, description)
+    except DbError:
+        pass
+
+    return RedirectResponse(url="/plans", status_code=303)
+
+
+@app.post("/plans/toggle")
+def plans_toggle(id: int = Form(...), done: str = Form("")):
+    try:
+        db = get_db()
+        db.set_plan_done(id, done == "1")
+    except DbError:
+        return JSONResponse({"ok": False}, status_code=500)
+    return JSONResponse({"ok": True})
+
+
 @app.post("/notes")
 def create_notes(batch: NotesBatch):
     date = (batch.date or "").strip()

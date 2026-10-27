@@ -194,3 +194,68 @@ class NotesDb:
         except Exception as e:
             raise DbError(f"Ошибка чтения годов seed_inventory: {e}")
         return [r[0] for r in rows]
+
+    def list_plans(self, limit: int = 500) -> list[dict]:
+        sql = """
+            SELECT id, month_start, day_start, month_end, day_end,
+                   culture, description, done, created_at::text
+            FROM plans
+            ORDER BY culture, month_start, day_start
+            LIMIT %s
+        """
+        try:
+            with psycopg.connect(self.dsn) as conn:
+                with conn.cursor() as cur:
+                    cur.execute(sql, (limit,))
+                    rows = cur.fetchall()
+        except Exception as e:
+            raise DbError(f"Ошибка чтения plans: {e}")
+
+        return [
+            {
+                "id": r[0],
+                "month_start": r[1],
+                "day_start": r[2],
+                "month_end": r[3],
+                "day_end": r[4],
+                "culture": r[5],
+                "description": r[6],
+                "done": bool(r[7]),
+                "created_at": r[8],
+            }
+            for r in rows
+        ]
+
+    def create_plan(self, month_start, day_start, month_end, day_end, culture, description, done=False) -> int:
+        sql = """
+            INSERT INTO plans (month_start, day_start, month_end, day_end, culture, description, done)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
+        """
+        try:
+            with psycopg.connect(self.dsn) as conn:
+                with conn.cursor() as cur:
+                    cur.execute(sql, (month_start, day_start, month_end, day_end, culture, description, done))
+                    row = cur.fetchone()
+                conn.commit()
+        except Exception as e:
+            raise DbError(f"Ошибка создания plan: {e}")
+        return row[0]
+
+    def set_plan_done(self, plan_id: int, done: bool) -> None:
+        try:
+            with psycopg.connect(self.dsn) as conn:
+                with conn.cursor() as cur:
+                    cur.execute("UPDATE plans SET done = %s WHERE id = %s", (done, plan_id))
+                conn.commit()
+        except Exception as e:
+            raise DbError(f"Ошибка обновления plan {plan_id}: {e}")
+
+    def delete_plan(self, plan_id: int) -> None:
+        try:
+            with psycopg.connect(self.dsn) as conn:
+                with conn.cursor() as cur:
+                    cur.execute("DELETE FROM plans WHERE id = %s", (plan_id,))
+                conn.commit()
+        except Exception as e:
+            raise DbError(f"Ошибка удаления plan {plan_id}: {e}")

@@ -1,58 +1,88 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru" data-theme="light">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Заметки{% endblock %}</title>
-  <link rel="stylesheet" href="/static/style.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-  <script>
-    (function () {
-      try {
-        const saved = localStorage.getItem('theme');
-        if (saved === 'dark' || saved === 'light') {
-          document.documentElement.setAttribute('data-theme', saved);
-        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-          document.documentElement.setAttribute('data-theme', 'dark');
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}Заметки{% endblock %}</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+    />
+    <script>
+      (function () {
+        try {
+          const saved = localStorage.getItem("theme");
+          if (saved === "dark" || saved === "light") {
+            document.documentElement.setAttribute("data-theme", saved);
+          } else if (
+            window.matchMedia &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches
+          ) {
+            document.documentElement.setAttribute("data-theme", "dark");
+          }
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body
+    class="{% if active_tab == 'second' or active_tab == 'plans' %}page-scroll{% endif %}"
+  >
+    <header class="tabs-header">
+      <nav class="tabs">
+        <a href="/" class="tab {% if active_tab == 'notes' %}active{% endif %}"
+          >Заметки</a
+        >
+        <a
+          href="/second"
+          class="tab {% if active_tab == 'second' %}active{% endif %}"
+          >Семена</a
+        >
+        <a
+          href="/plans"
+          class="tab {% if active_tab == 'plans' %}active{% endif %}"
+          >План</a
+        >
+      </nav>
+      <button
+        type="button"
+        id="theme-toggle"
+        class="theme-toggle"
+        title="Сменить тему"
+      >
+        <i class="bi bi-moon-stars-fill"></i>
+      </button>
+    </header>
+    <main>
+      {% if error %}
+      <div class="error">{{ error }}</div>
+      {% endif %} {% block content %}{% endblock %}
+    </main>
+    <script>
+      (function () {
+        const btn = document.getElementById("theme-toggle");
+        function applyIcon() {
+          const cur =
+            document.documentElement.getAttribute("data-theme") || "light";
+          const icon = btn.querySelector("i");
+          if (icon) {
+            icon.className =
+              cur === "dark" ? "bi bi-sun-fill" : "bi bi-moon-stars-fill";
+          }
         }
-      } catch (e) {}
-    })();
-  </script>
-</head>
-<body>
-  <header class="tabs-header">
-    <nav class="tabs">
-      <a href="/" class="tab {% if active_tab == 'notes' %}active{% endif %}">Заметки</a>
-      <a href="/second" class="tab {% if active_tab == 'second' %}active{% endif %}">Семена</a>
-    </nav>
-    <button type="button" id="theme-toggle" class="theme-toggle" title="Сменить тему">
-      <i class="bi bi-moon-stars-fill"></i>
-    </button>
-  </header>
-  <main>
-    {% if error %}<div class="error">{{ error }}</div>{% endif %}
-    {% block content %}{% endblock %}
-  </main>
-  <script>
-    (function () {
-      const btn = document.getElementById('theme-toggle');
-      function applyIcon() {
-        const cur = document.documentElement.getAttribute('data-theme') || 'light';
-        const icon = btn.querySelector('i');
-        if (icon) {
-          icon.className = cur === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
+        function toggle() {
+          const cur =
+            document.documentElement.getAttribute("data-theme") || "light";
+          const next = cur === "dark" ? "light" : "dark";
+          document.documentElement.setAttribute("data-theme", next);
+          try {
+            localStorage.setItem("theme", next);
+          } catch (e) {}
+          applyIcon();
         }
-      }
-      function toggle() {
-        const cur = document.documentElement.getAttribute('data-theme') || 'light';
-        const next = cur === 'dark' ? 'light' : 'dark';
-        document.documentElement.setAttribute('data-theme', next);
-        try { localStorage.setItem('theme', next); } catch (e) {}
+        btn.addEventListener("click", toggle);
         applyIcon();
-      }
-      btn.addEventListener('click', toggle);
-      applyIcon();
-    })();
-  </script>
-</body>
+      })();
+    </script>
+  </body>
 </html>
