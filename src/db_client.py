@@ -47,6 +47,28 @@ class NotesDb:
             "description": row[4],
         }
 
+    def create_note_today(self, culture, description) -> dict:
+        sql = """
+            INSERT INTO notes (culture, description, date)
+            VALUES (%s, %s, CURRENT_DATE)
+            RETURNING id, date::text, culture, description
+        """
+        try:
+            with psycopg.connect(self.dsn) as conn:
+                with conn.cursor() as cur:
+                    cur.execute(sql, (culture, description))
+                    row = cur.fetchone()
+                conn.commit()
+        except Exception as e:
+            raise DbError(f"Ошибка создания заметки: {e}")
+
+        return {
+            "id": row[0],
+            "date": row[1],
+            "culture": row[2],
+            "description": row[3],
+        }
+
     def list_notes(self, limit: int = 500) -> list[dict]:
         sql = """
             SELECT id, created_at::text, date::text, culture, description

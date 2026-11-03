@@ -42,6 +42,11 @@ class UpdateBatch(BaseModel):
     items: list[UpdateItem]
 
 
+class ApiNoteIn(BaseModel):
+    description: str
+    culture: str | None = None
+
+
 @app.get("/", response_class=HTMLResponse)
 def form_page(request: Request):
     return templates.TemplateResponse("form.html", {"request": request, "error": None, "active_tab": "notes"})
@@ -209,6 +214,29 @@ def create_notes(batch: NotesBatch):
         return JSONResponse({"ok": False, "error": f"Ошибка после {saved} записей: {e.message}"}, status_code=500)
 
     return JSONResponse({"ok": True, "saved": saved})
+
+
+@app.post("/api/notes")
+def api_create_note(payload: ApiNoteIn):
+    description = (payload.description or "").strip()
+    if not description:
+        return JSONResponse({"ok": False, "error": "description обязателен"}, status_code=400)
+
+    culture = (payload.culture or "").strip() or None
+
+    try:
+        db = get_db()
+        note = db.create_note_today(culture, description)
+    except DbError as e:
+        return JSONResponse({"ok": False, "error": e.message}, status_code=500)
+
+    return JSONResponse({
+        "ok": True,
+        "id": note["id"],
+        "date": note["date"],
+        "culture": note["culture"],
+        "description": note["description"],
+    })
 
 
 @app.get("/history-json")
